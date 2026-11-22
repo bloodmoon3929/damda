@@ -1,3 +1,6 @@
+import 'package:appflowy_editor/appflowy_editor.dart' show paragraphNode;
+
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:drift/native.dart';
@@ -72,8 +75,11 @@ void main() {
     expect(msg, '"오사카 브이로그" 페이지를 만들었어요');
     final pages = await repo.watchPages().first;
     final page = pages.singleWhere((p) => p.title == '오사카 브이로그');
-    expect(page.parentId, isNull);
-    expect(await repo.isInInboxSection(page.id), isTrue);
+    // Under 공유된 페이지, which sits in the 미정리 section.
+    final shared = await repo.getPage(Capture.sharedPageId);
+    expect(shared!.title, '공유된 페이지');
+    expect(page.parentId, shared.id);
+    expect(await repo.isInInboxSection(shared.id), isTrue);
     final doc = await repo.openDocument(page.id);
     expect(
       [for (final n in doc.document.root.children) n.delta!.toPlainText()],
@@ -92,15 +98,24 @@ void main() {
       hasLength(1),
     );
 
-    // Not YouTube: into the 미정리 note, no new page.
+    // Not YouTube: onto 공유된 페이지 itself, no new page; 미정리 untouched.
     expect(
       await repo.saveShared('https://news.site/a', '기사', client: client),
-      '미정리에 저장했어요',
+      '공유된 페이지에 저장했어요',
     );
+    final sharedDoc = await repo.openDocument(shared.id);
+    expect([
+      for (final n in sharedDoc.document.root.children) n.delta!.toPlainText(),
+    ], containsAllInOrder(['기사', 'https://news.site/a']));
     final inbox = await repo.openDocument(repo.inboxPageId);
     expect([
-      for (final n in inbox.document.root.children) n.delta!.toPlainText(),
-    ], containsAllInOrder(['기사', 'https://news.site/a']));
+      for (final n in inbox.document.root.children) n.delta?.toPlainText(),
+    ], isNot(contains('https://news.site/a')));
+
+    // Deleted 공유된 페이지 comes back (same id) on the next share.
+    await repo.trashPage(shared.id);
+    await repo.saveShared('메모', '', client: client);
+    expect((await repo.getPage(shared.id))!.trashedAt, isNull);
     await db.close();
   });
 
@@ -120,5 +135,35 @@ void main() {
     final d = linkify('보기: https://x.y/z?q=1 끝');
     expect(d.toPlainText(), '보기: https://x.y/z?q=1 끝');
     expect(d.toList()[1].attributes?['href'], 'https://x.y/z?q=1');
+  });
+
+  test('old YouTube shares move under 공유된 페이지 once', () async {
+    final dir = Directory.systemTemp.createTempSync('yt_move');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repo = NotesRepository(db, assetsDir: dir.path);
+    await repo.init();
+    Future<String> share(String title, String text) async {
+      final id = await repo.createPage(
+        title: title,
+        icon: '▶️',
+        inboxSection: true,
+      );
+      final doc = await repo.openDocument(id);
+      doc.document.insert([0], [paragraphNode(text: text)]);
+      await doc.save();
+      return id;
+    }
+
+    final a = await share('영상 A', 'https://youtu.be/aaa');
+    final b = await share('영상 B', 'https://www.youtube.com/watch?v=b');
+    final mine = await share('내 재생목록 메모', '그냥 글'); // no link: stays
+    expect(await repo.moveOldYoutubeSharesOnce(), 2);
+    final shared = Capture.sharedPageId;
+    expect((await repo.getPage(a))!.parentId, shared);
+    expect((await repo.getPage(b))!.parentId, shared);
+    expect((await repo.getPage(mine))!.parentId, isNull);
+    expect(await repo.moveOldYoutubeSharesOnce(), 0); // only once
   });
 }

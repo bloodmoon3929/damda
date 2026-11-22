@@ -1,9 +1,12 @@
 import 'dart:convert';
 
 import 'package:appflowy_editor/appflowy_editor.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:http/http.dart' as http;
 
 import 'asset_repository.dart';
+import 'database.dart';
+import 'database_repository.dart' show stableId;
 import 'notes_repository.dart';
 
 final _url = RegExp(r'https?://[^\s<>"]+');
@@ -62,13 +65,88 @@ Delta linkify(String line) {
 /// the end of 미정리, to be sorted later by the user.
 extension Capture on NotesRepository {
   /// Adds the non-empty lines of [text] to the end of 미정리.
-  Future<void> appendToInbox(String text) async {
+  Future<void> appendToInbox(String text) => _appendLines(inboxPageId, text);
+
+  /// The same id on every device, so syncing two devices that both made
+  /// "공유된 페이지" gives one page, not two.
+  static final sharedPageId = stableId('damda/shared-page');
+
+  /// "공유된 페이지" in the 미정리 section (beside the 미정리 note): what
+  /// other apps share lands under it instead of filling 미정리. Made on
+  /// first use, and brought back if it was deleted. If the user moved or
+  /// renamed it, it stays that way.
+  Future<String> ensureSharedPage() async {
+    final id = sharedPageId;
+    final page = await getPage(id);
+    if (page == null) {
+      await createPage(
+        id: id,
+        title: '공유된 페이지',
+        icon: '📤',
+        inboxSection: true,
+      );
+    } else if (page.deleted || page.trashedAt != null) {
+      await (db.update(db.pages)..where((p) => p.id.equals(id))).write(
+        PagesCompanion(
+          deleted: const Value(false),
+          trashedAt: const Value(null),
+          updatedAt: Value(clock.tick()),
+          deviceId: Value(deviceId),
+          dirty: const Value(true),
+        ),
+      );
+    }
+    return id;
+  }
+
+  /// Once per device (1.0.23): YouTube pages shared before 공유된 페이지
+  /// existed sit at the top of the 미정리 section; move them under it, in
+  /// their order. Only top-level ▶️ pages there whose text has a YouTube
+  /// link. Returns how many moved.
+  Future<int> moveOldYoutubeSharesOnce() async {
+    const flag = 'moved_old_youtube_shares_v1';
+    if (await db.getMeta(flag) != null) return 0;
+    final candidates =
+        await (db.select(db.pages)
+              ..where(
+                (p) =>
+                    p.deleted.equals(false) &
+                    p.trashedAt.isNull() &
+                    p.parentId.isNull() &
+                    p.icon.equals('▶️'),
+              )
+              ..orderBy([(p) => OrderingTerm.asc(p.sortKey)]))
+            .get();
+    var moved = 0;
+    String? target;
+    for (final page in candidates) {
+      if (!await isInInboxSection(page.id)) continue;
+      final youtube =
+          await (db.select(db.blocks)
+                ..where(
+                  (b) =>
+                      b.pageId.equals(page.id) &
+                      b.deleted.equals(false) &
+                      b.data.like('%youtu%'),
+                )
+                ..limit(1))
+              .getSingleOrNull();
+      if (youtube == null) continue;
+      target ??= await ensureSharedPage();
+      await movePage(page.id, parentId: target);
+      moved++;
+    }
+    await db.setMeta(flag, '$moved');
+    return moved;
+  }
+
+  Future<void> _appendLines(String pageId, String text) async {
     final lines = [
       for (final l in text.split('\n'))
         if (l.trim().isNotEmpty) l.trimRight(),
     ];
     if (lines.isEmpty) return;
-    final doc = await openDocument(inboxPageId);
+    final doc = await openDocument(pageId);
     final root = doc.document.root;
     var at = root.children.length;
     // A trailing empty line (a new page has one) is replaced, so captures
@@ -87,7 +165,7 @@ extension Capture on NotesRepository {
     await doc.save();
   }
 
-  /// A page of its own for a shared YouTube video, in the 미정리 section:
+  /// A page of its own for a shared YouTube video, under 공유된 페이지:
   /// the video title, its thumbnail, the link and the channel. Returns the
   /// page id and title.
   Future<({String id, String title})> saveYoutubePage(
@@ -99,7 +177,11 @@ extension Capture on NotesRepository {
     final title = info?.title.isNotEmpty ?? false
         ? info!.title
         : (subject.trim().isNotEmpty ? subject.trim() : 'YouTube 영상');
-    final id = await createPage(title: title, icon: '▶️', inboxSection: true);
+    final id = await createPage(
+      parentId: await ensureSharedPage(),
+      title: title,
+      icon: '▶️',
+    );
     final nodes = <Node>[];
     if (info != null && info.thumbnail.isNotEmpty) {
       try {
@@ -141,9 +223,11 @@ extension Capture on NotesRepository {
     return (id: id, title: title);
   }
 
-  /// Saves something shared from another app right away (no editing):
-  /// a YouTube video becomes its own page, anything else goes to the end
-  /// of the 미정리 note. Returns what to tell the user.
+  /// Saves something shared from another app right away (no editing),
+  /// under 공유된 페이지 in the 미정리 section: a YouTube video becomes its
+  /// own page there, anything else goes to the end of that page. Memos
+  /// from the widget still go to the 미정리 note. Returns what to tell
+  /// the user.
   Future<String> saveShared(
     String text,
     String subject, {
@@ -158,8 +242,8 @@ extension Capture on NotesRepository {
       );
       return '"${page.title}" 페이지를 만들었어요';
     }
-    await appendToInbox(shareText(text, subject));
-    return '미정리에 저장했어요';
+    await _appendLines(await ensureSharedPage(), shareText(text, subject));
+    return '공유된 페이지에 저장했어요';
   }
 }
 

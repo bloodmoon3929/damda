@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'data/capture.dart';
 import 'data/asset_repository.dart';
 import 'data/database.dart';
 import 'data/database_repository.dart';
@@ -80,6 +81,12 @@ Future<NotesRepository> openRepository({String? dataDir}) async {
     await repo.purgeOldTrash();
   } catch (e) {
     debugPrint('trash purge failed: $e');
+  }
+  // 1.0.23: old YouTube shares go under 공유된 페이지 (once).
+  try {
+    await repo.moveOldYoutubeSharesOnce();
+  } catch (e) {
+    debugPrint('moving old YouTube shares failed: $e');
   }
   return repo;
 }
