@@ -70,7 +70,8 @@ jobs:
       - name: Version
         id: v
         shell: bash
-        run: echo "version=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: flutter build ${{ matrix.platform }} --release
