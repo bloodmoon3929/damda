@@ -1,0 +1,114 @@
+# Builds 담다 for Windows, macOS and Linux.
+# - Push a tag like v1.0.23 -> tests, three builds, and a GitHub Release
+#   with the files attached (the app's update check reads that release).
+# - "Run workflow" by hand -> the same builds, kept as workflow artifacts.
+# The Android APK is signed on the developer's PC (the key never leaves it)
+# and added to the release from there.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+        working-directory: .
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter test
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+          - os: ubuntu-latest
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux build tools
+        if: matrix.platform == 'linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev libmpv-dev mpv \
+            libsecret-1-dev libjsoncpp-dev libsqlite3-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Version
+        id: v
+        shell: bash
+        run: echo "version=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: flutter build ${{ matrix.platform }} --release
+
+      - name: Package (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "damda-${{ steps.v.outputs.version }}-windows.zip"
+
+      - name: Package (macOS)
+        if: matrix.platform == 'macos'
+        run: ditto -c -k --keepParent build/macos/Build/Products/Release/Damda.app "damda-${{ steps.v.outputs.version }}-macos.zip"
+
+      - name: Package (Linux)
+        if: matrix.platform == 'linux'
+        run: tar -czf "damda-${{ steps.v.outputs.version }}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: damda-${{ matrix.platform }}
+          path: |
+            app/damda-*.zip
+            app/damda-*.tar.gz
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

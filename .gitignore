@@ -1,0 +1,36 @@
+# --- never commit: signing keys and local settings ---
+*.jks
+*.keystore
+key.properties
+local.properties
+.env
+*.env
+!.env.example
+
+# --- build output and installers (releases go to GitHub Releases) ---
+/release/
+build/
+.dart_tool/
+**/Flutter/ephemeral/
+*.exe
+*.log
+
+# --- server dev environment ---
+server/.venv/
+server/.pytest_cache/
+__pycache__/
+*.pyc
+
+# --- not for a public repo: notes from inspecting other apps ---
+/docs/rea/
+
+# --- editor / OS clutter ---
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# --- private dev notes (kept on this PC) ---
+/PLAN.md
+/ISSUES.md
+/CLAUDE.md

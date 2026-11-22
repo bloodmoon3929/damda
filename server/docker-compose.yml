@@ -1,0 +1,27 @@
+# 노트 동기화 서버 (https://<도메인>/notes-api/)
+# 1) 이 폴더(app/, Dockerfile, requirements.txt 포함)를 서버에 둔다
+# 2) .env.example 을 .env 로 복사하고 NOTES_ADMIN_TOKEN 을 바꾼다
+# 3) docker compose up -d --build   (OMV Compose 에서는 Up)
+services:
+  notes-api:
+    build: .
+    image: notes-api
+    container_name: notes-api
+    restart: unless-stopped
+    env_file: ./.env                 # NOTES_ADMIN_TOKEN
+    volumes:
+      - ./data:/data                 # notes.db + assets/ (백업 대상)
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - quartz-network               # nginx-lb 가 이름(notes-api)으로 찾아온다
+    # ports 없음 — 외부에서는 nginx-lb 를 통해서만 접근
+
+networks:
+  quartz-network:
+    external: true
+    name: quartz-network
