@@ -328,7 +328,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
               child: Text(
-                '담다',
+                '나무',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

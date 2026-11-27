@@ -1,6 +1,6 @@
-# 담다에 부족한 기능 (Notion · Obsidian 대비)
+# 나무에 부족한 기능 (Notion · Obsidian 대비)
 
-2026-10-21 기준(1.0.14). 근거는 `notion-obsidian-dooray-analysis.md`의 공식 문서 조사와 담다 코드에서 실제로 확인한 기능 목록이다. REA로 앱을 직접 분석하지는 못했다(이 PC에 Notion·Obsidian 데스크톱 앱이 없고, REA MCP가 Claude Code에 등록되지 않음).
+2026-10-21 기준(1.0.14). 근거는 `notion-obsidian-dooray-analysis.md`의 공식 문서 조사와 나무 코드에서 실제로 확인한 기능 목록이다. REA로 앱을 직접 분석하지는 못했다(이 PC에 Notion·Obsidian 데스크톱 앱이 없고, REA MCP가 Claude Code에 등록되지 않음).
 
 ## 이미 있는 것 (비교 기준)
 

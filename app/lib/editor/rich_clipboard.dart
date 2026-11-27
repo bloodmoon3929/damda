@@ -92,7 +92,7 @@ Future<bool> _copyImageFile(String path) async {
       .replaceAll('-', '')
       .replaceAll('T', '-');
   final ext = p.extension(path).isEmpty ? '.png' : p.extension(path);
-  final out = p.join(dir.path, '담다 이미지 $stamp$ext');
+  final out = p.join(dir.path, '나무 이미지 $stamp$ext');
   File(path).copySync(out);
   return Pasteboard.writeFiles([out]);
 }

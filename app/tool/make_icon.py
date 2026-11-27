@@ -1,8 +1,12 @@
-﻿"""Draws the 담다 app icon: a note page with a small graph on it.
+﻿"""Draws the 나무 app icon: a tree whose crown is a small note graph.
+
+The graph is the one from the old icon (five notes, six links, the orange
+one in the middle); the orange note sits where the trunk splits, so the
+links read as branches and the notes as leaves.
 
 python tool/make_icon.py  →  assets/icon/icon.png (full icon, 1024px)
                              assets/icon/foreground.png (Android adaptive
-                             foreground: the page alone, inside the safe zone)
+                             foreground: the tree alone, inside the safe zone)
                              assets/icon/icon_macos.png (macOS: inset + shadow)
 Drawn at 4x and scaled down for smooth edges.
 """
@@ -12,76 +16,77 @@ from PIL import Image, ImageDraw, ImageFilter
 
 S = 4  # supersampling
 N = 1024 * S
-BG = (49, 87, 214)  # indigo blue
-PAGE = (255, 255, 255)
-FOLD = (214, 223, 248)
-LINE = (163, 178, 222)
-NODE_MAIN = (255, 138, 61)  # warm orange (the "담은" note)
-NODE = (49, 87, 214)
-TEXT = (226, 231, 245)
+BG = (232, 244, 234)  # pale leaf (also adaptive_icon_background in pubspec)
+CROWN = (52, 150, 96)  # leaves
+TRUNK = (121, 85, 61)  # bark
+LINE = (170, 220, 185)  # links between notes
+NODE = (255, 255, 255)
+NODE_MAIN = (255, 138, 61)  # warm orange: the note everything grows from
 
 out = Path(__file__).resolve().parent.parent / "assets" / "icon"
 out.mkdir(parents=True, exist_ok=True)
 
+# The graph, in a unit square: same notes and links as before.
+PTS = {
+    "a": (0.29, 0.33),
+    "b": (0.50, 0.19),
+    "c": (0.50, 0.50),  # orange, where the trunk meets the crown
+    "d": (0.71, 0.35),
+    "e": (0.31, 0.53),
+}
+LINKS = [("a", "c"), ("b", "c"), ("c", "d"), ("b", "d"), ("c", "e"), ("a", "b")]
+# The crown: overlapping circles (x, y, radius) behind the graph.
+CROWN_CIRCLES = [
+    (0.50, 0.35, 0.25),
+    (0.31, 0.42, 0.17),
+    (0.69, 0.42, 0.17),
+    (0.37, 0.25, 0.16),
+    (0.63, 0.25, 0.16),
+    (0.50, 0.48, 0.16),
+]
 
-def draw_page(d: ImageDraw.ImageDraw, x0, y0, w, h):
-    """A page with a folded top-right corner, two text lines and a graph."""
-    fold = w * 0.24
-    r = w * 0.07
-    # Body (rounded except the folded corner).
-    d.rounded_rectangle([x0, y0, x0 + w, y0 + h], radius=r, fill=PAGE)
+
+def draw_tree(d: ImageDraw.ImageDraw, x0, y0, s):
+    """The tree in the square at (x0, y0) with side s."""
+    X = lambda u: x0 + s * u  # noqa: E731
+    Y = lambda v: y0 + s * v  # noqa: E731
+    for u, v, r in CROWN_CIRCLES:
+        d.ellipse([X(u - r), Y(v - r), X(u + r), Y(v + r)], fill=CROWN)
+    # Trunk: from the orange note down, widening, with a small root flare.
+    cx, cy = PTS["c"]
     d.polygon(
-        [(x0 + w - fold, y0 - 1), (x0 + w + 1, y0 - 1), (x0 + w + 1, y0 + fold)],
-        fill=BG_FOR_PAGE,
+        [
+            (X(cx - 0.035), Y(cy)),
+            (X(cx + 0.035), Y(cy)),
+            (X(cx + 0.055), Y(0.82)),
+            (X(cx + 0.10), Y(0.90)),
+            (X(cx - 0.10), Y(0.90)),
+            (X(cx - 0.055), Y(0.82)),
+        ],
+        fill=TRUNK,
     )
-    d.polygon(
-        [(x0 + w - fold, y0), (x0 + w - fold, y0 + fold), (x0 + w, y0 + fold)],
-        fill=FOLD,
-    )
-    # Two short "text" lines at the top.
-    lh = w * 0.055
-    for i, frac in enumerate((0.48, 0.32)):
-        ly = y0 + h * (0.14 + i * 0.11)
-        d.rounded_rectangle(
-            [x0 + w * 0.14, ly, x0 + w * (0.14 + frac), ly + lh],
-            radius=lh / 2,
-            fill=TEXT,
-        )
-    # Graph: nodes joined by lines in the lower part of the page.
-    gx, gy, gw, gh = x0 + w * 0.12, y0 + h * 0.42, w * 0.76, h * 0.48
-    pts = {
-        "a": (0.18, 0.30),
-        "b": (0.62, 0.16),
-        "c": (0.42, 0.62),
-        "d": (0.86, 0.66),
-        "e": (0.14, 0.88),
-    }
-    xy = {k: (gx + gw * u, gy + gh * v) for k, (u, v) in pts.items()}
-    lw = int(w * 0.035)
-    for a, b in [("a", "c"), ("b", "c"), ("c", "d"), ("b", "d"), ("c", "e"), ("a", "b")]:
-        d.line([xy[a], xy[b]], fill=LINE, width=lw)
-    for k, (cx, cy) in xy.items():
-        rad = w * (0.085 if k == "c" else 0.058)
-        d.ellipse([cx - rad, cy - rad, cx + rad, cy + rad],
+    lw = int(s * 0.026)
+    for a, b in LINKS:
+        d.line([(X(PTS[a][0]), Y(PTS[a][1])), (X(PTS[b][0]), Y(PTS[b][1]))],
+               fill=LINE, width=lw)
+    for k, (u, v) in PTS.items():
+        r = s * (0.07 if k == "c" else 0.05)
+        d.ellipse([X(u) - r, Y(v) - r, X(u) + r, Y(v) + r],
                   fill=NODE_MAIN if k == "c" else NODE)
 
 
-# Full icon: page on the blue rounded square (Windows, legacy Android).
-BG_FOR_PAGE = BG
+# Full icon: the tree on the pale rounded square (Windows, legacy Android).
 img = Image.new("RGBA", (N, N), (0, 0, 0, 0))
 d = ImageDraw.Draw(img)
 d.rounded_rectangle([0, 0, N - 1, N - 1], radius=N * 0.22, fill=BG)
-pw, ph = N * 0.56, N * 0.66
-draw_page(d, (N - pw) / 2, (N - ph) / 2, pw, ph)
+draw_tree(d, N * 0.05, N * 0.04, N * 0.90)
 img.resize((1024, 1024), Image.LANCZOS).save(out / "icon.png")
 
-# Adaptive foreground: transparent, page within the central safe zone
-# (Android crops to ~66%); the blue comes from the background color.
-BG_FOR_PAGE = (0, 0, 0, 0)
+# Adaptive foreground: transparent, tree within the central safe zone
+# (Android crops to ~66%); the pale green comes from the background color.
 fg = Image.new("RGBA", (N, N), (0, 0, 0, 0))
 d = ImageDraw.Draw(fg)
-pw, ph = N * 0.44, N * 0.52
-draw_page(d, (N - pw) / 2, (N - ph) / 2, pw, ph)
+draw_tree(d, N * 0.20, N * 0.19, N * 0.60)
 fg.resize((1024, 1024), Image.LANCZOS).save(out / "foreground.png")
 
 # macOS: the full icon at 824px on a 1024 canvas with a soft shadow, like

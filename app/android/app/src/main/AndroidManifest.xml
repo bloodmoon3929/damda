@@ -2,7 +2,7 @@
     <!-- Server sync, map tiles and address search. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="담다"
+        android:label="나무"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -32,7 +32,7 @@
         <activity
             android:name=".QuickMemoActivity"
             android:exported="true"
-            android:label="담다 · 미정리에 저장"
+            android:label="나무 · 미정리에 저장"
             android:taskAffinity="kr.bloodmoon.notes.quick"
             android:excludeFromRecents="true"
             android:launchMode="standard"

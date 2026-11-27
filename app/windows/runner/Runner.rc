@@ -90,7 +90,7 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "kr.bloodmoon" "\0"
-            VALUE "FileDescription", "Damda" "\0"
+            VALUE "FileDescription", "Namu" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "notes" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 kr.bloodmoon. All rights reserved." "\0"

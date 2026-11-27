@@ -27,9 +27,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  // The app name (Damda, in Hangul) as escapes: MSVC reads this file in the
+  // The app name (Namu, in Hangul) as escapes: MSVC reads this file in the
   // system code page, so non-ASCII text here breaks the build (C4819).
-  if (!window.Create(L"\uB2F4\uB2E4", origin, size)) {
+  if (!window.Create(L"\uB098\uBB34", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
