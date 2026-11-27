@@ -133,13 +133,35 @@ Future<String?> findProgram(String program) async {
       }
     }
   }
+  // An app opened from Finder/Dock gets PATH=/usr/bin:/bin:/usr/sbin:/sbin,
+  // so Homebrew installs (node, newer python…) aren't found by `which`.
+  if ((hit == null || hit.isEmpty) && Platform.isMacOS) {
+    final home = Platform.environment['HOME'] ?? '';
+    for (final dir in [
+      '/opt/homebrew/bin', // Apple silicon Homebrew
+      '/usr/local/bin', // Intel Homebrew, python.org, node installers
+      if (home.isNotEmpty) '$home/.local/bin',
+    ]) {
+      final f = File(p.join(dir, program));
+      if (f.existsSync()) {
+        hit = f.path;
+        break;
+      }
+    }
+  }
   return _found[program] = (hit == null || hit.isEmpty) ? null : hit;
 }
 
 /// What is needed to run [language] when nothing was found.
 String missingHint(String language) => switch (runnableLanguage(language)) {
+  'cpp' || 'c' when Platform.isMacOS =>
+    'C/C++ 컴파일러가 없어요. 터미널에서 xcode-select --install 을 실행하세요.',
+  'cpp' || 'c' when Platform.isLinux =>
+    'C/C++ 컴파일러가 없어요. g++ (예: sudo apt install g++)를 설치하세요.',
   'cpp' || 'c' => 'C/C++ 컴파일러(g++)가 없어요. MinGW-w64(WinLibs 또는 MSYS2)를 설치하세요.',
   'bash' => 'bash가 없어요. Git for Windows를 설치하면 함께 들어와요.',
+  'javascript' when Platform.isMacOS =>
+    'node가 없어요. nodejs.org에서 받거나 brew install node 로 설치하세요.',
   final l => '$l 실행 프로그램을 찾지 못했어요.',
 };
 

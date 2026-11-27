@@ -2,8 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Off: the code block runner starts python/clang/node, and Apple's
+	     /usr/bin tools refuse to run inside the App Sandbox ("xcrun: cannot
+	     be used within an App Sandbox"). Not an App Store app, so no sandbox.
+	     The keys below only matter if the sandbox is turned back on. -->
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 	<!-- Sync with the server, map tiles, Notion import -->
 	<key>com.apple.security.network.client</key>
 	<true/>

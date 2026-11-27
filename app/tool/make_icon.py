@@ -3,11 +3,12 @@
 python tool/make_icon.py  →  assets/icon/icon.png (full icon, 1024px)
                              assets/icon/foreground.png (Android adaptive
                              foreground: the page alone, inside the safe zone)
+                             assets/icon/icon_macos.png (macOS: inset + shadow)
 Drawn at 4x and scaled down for smooth edges.
 """
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 S = 4  # supersampling
 N = 1024 * S
@@ -82,4 +83,16 @@ d = ImageDraw.Draw(fg)
 pw, ph = N * 0.44, N * 0.52
 draw_page(d, (N - pw) / 2, (N - ph) / 2, pw, ph)
 fg.resize((1024, 1024), Image.LANCZOS).save(out / "foreground.png")
+
+# macOS: the full icon at 824px on a 1024 canvas with a soft shadow, like
+# Apple's icon template, so it sits the same size as other Dock icons.
+mac_size = int(N * 824 / 1024)
+inner = img.resize((mac_size, mac_size), Image.LANCZOS)
+off = (N - mac_size) // 2
+alpha = Image.new("L", (N, N), 0)
+alpha.paste(inner.getchannel("A"), (off, off + int(10 * S)))
+shadow = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+shadow.putalpha(alpha.filter(ImageFilter.GaussianBlur(10 * S)).point(lambda a: a * 0.3))
+shadow.alpha_composite(inner, (off, off))
+shadow.resize((1024, 1024), Image.LANCZOS).save(out / "icon_macos.png")
 print("ok", out)

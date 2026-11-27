@@ -11,7 +11,12 @@ import 'theme.dart';
 /// import. The token is kept only if the user asks, and then in the OS key
 /// store (Windows Credential Manager / Android Keystore), never in the
 /// notes DB or synced.
-const _secure = FlutterSecureStorage();
+// macOS: the data-protection keychain (the plugin's default) needs a
+// Developer ID team in the signature; the release is ad-hoc signed, so
+// every write failed with -34018. The login keychain works without one.
+const _secure = FlutterSecureStorage(
+  mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+);
 const _tokenKey = 'notion_token';
 
 Future<void> showNotionImport(BuildContext context, WidgetRef ref) =>
