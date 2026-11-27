@@ -1,4 +1,4 @@
-# Builds 담다 for Windows, macOS and Linux.
+# Builds 나무 for Windows, macOS and Linux.
 # - Push a tag like v1.0.23 -> tests, three builds, and a GitHub Release
 #   with the files attached (the app's update check reads that release).
 # - "Run workflow" by hand -> the same builds, kept as workflow artifacts.
@@ -79,22 +79,22 @@ jobs:
       - name: Package (Windows)
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "damda-${{ steps.v.outputs.version }}-windows.zip"
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "namu-${{ steps.v.outputs.version }}-windows.zip"
 
       - name: Package (macOS)
         if: matrix.platform == 'macos'
-        run: ditto -c -k --keepParent build/macos/Build/Products/Release/Damda.app "damda-${{ steps.v.outputs.version }}-macos.zip"
+        run: ditto -c -k --keepParent build/macos/Build/Products/Release/Namu.app "namu-${{ steps.v.outputs.version }}-macos.zip"
 
       - name: Package (Linux)
         if: matrix.platform == 'linux'
-        run: tar -czf "damda-${{ steps.v.outputs.version }}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+        run: tar -czf "namu-${{ steps.v.outputs.version }}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: damda-${{ matrix.platform }}
+          name: namu-${{ matrix.platform }}
           path: |
-            app/damda-*.zip
-            app/damda-*.tar.gz
+            app/namu-*.zip
+            app/namu-*.tar.gz
           if-no-files-found: error
 
   release:

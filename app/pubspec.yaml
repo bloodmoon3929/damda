@@ -122,11 +122,11 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# App icon (담다): python tool/make_icon.py, then dart run flutter_launcher_icons
+# App icon (나무): python tool/make_icon.py, then dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
   image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#3157D6"
+  adaptive_icon_background: "#E8F4EA"
   adaptive_icon_foreground: "assets/icon/foreground.png"
   min_sdk_android: 21
   windows:
