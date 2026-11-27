@@ -16,9 +16,18 @@
 | 기기 | 파일 | 설치 |
 |---|---|---|
 | Windows | `damda-<버전>-windows.zip` | 압축을 풀고 `notes.exe` 실행 |
-| macOS | `damda-<버전>-macos.zip` | 압축을 풀고 `Damda.app`을 응용 프로그램 폴더로. 서명되지 않은 앱이라 처음 한 번은 우클릭 → 열기(또는 `xattr -dr com.apple.quarantine /Applications/Damda.app`) |
+| macOS | `damda-<버전>-macos.zip` | 압축을 풀고 `Damda.app`을 응용 프로그램 폴더로. 아래 [macOS에서 처음 열기](#macos에서-처음-열기) 참고 |
 | Linux | `damda-<버전>-linux-x64.tar.gz` | 압축을 풀고 `notes` 실행. `libmpv`, `libsecret`, `libgtk-3`가 필요합니다 (Ubuntu: `sudo apt install libmpv2 libsecret-1-0 libgtk-3-0`) |
 | Android | `damda-<버전>-android-arm64.apk` | 설치 |
+
+### macOS에서 처음 열기
+
+Apple 개발자 서명·공증을 받지 않은 앱이라, 처음 열면 "악성 코드가 없음을 확인할 수 없습니다"라고 막힙니다. 한 번만 허용하면 됩니다.
+
+- 시스템 설정 → 개인정보 보호 및 보안 → 아래쪽 "Damda이(가) 차단되었습니다" 옆 **그래도 열기** (macOS 15부터는 우클릭 → 열기로는 안 됩니다)
+- 또는 터미널에서 `xattr -dr com.apple.quarantine /Applications/Damda.app`
+
+새 버전으로 바꾼 뒤 Notion 가져오기에서 저장해 둔 토큰을 읽을 때 키체인 접근을 물으면 "항상 허용"을 누르세요.
 
 ## 구성
 

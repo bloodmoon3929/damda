@@ -133,6 +133,9 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icon/icon.png"
     icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icon/icon_macos.png"
 
 # super_native_extensions 0.9 asks for device_info_plus <12; the editor
 # needs 12. It only reads the Android version, which 12 still provides.
